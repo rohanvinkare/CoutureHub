@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getProducts, getProductsByCategory, getCategories } from '@/api/products.api'
@@ -74,6 +73,8 @@ export default function InventoryOverview() {
       try {
         let list = []
 
+        // Optimization: In a real-world high-traffic app, we would implement server-side
+        // pagination here instead of fetching 1000 items, to reduce "Main Thread Work".
         if (filterCategory) {
           const data = await getProductsByCategory(filterCategory, 1000, 0)
           list = data.products
@@ -145,7 +146,8 @@ export default function InventoryOverview() {
         <div className="relative w-full lg:w-96">
           <label htmlFor="inventory-search" className="sr-only">Search inventory</label>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-400" aria-hidden="true" />
+            {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
+            <Search className="h-4 w-4 text-gray-500" aria-hidden="true" />
           </div>
           <input
             id="inventory-search"
@@ -163,7 +165,8 @@ export default function InventoryOverview() {
           <div className="relative w-full lg:w-48">
             <label htmlFor="category-filter" className="sr-only">Filter by Category</label>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Filter className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
+              <Filter className="h-4 w-4 text-gray-500" aria-hidden="true" />
             </div>
             <select
               id="category-filter"
@@ -182,14 +185,16 @@ export default function InventoryOverview() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+            {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
+            <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-500 pointer-events-none" aria-hidden="true" />
           </div>
 
           {/* Sort Dropdown */}
           <div className="relative w-full lg:w-44">
             <label htmlFor="sort-order" className="sr-only">Sort Products</label>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <ArrowUpDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
+              <ArrowUpDown className="h-4 w-4 text-gray-500" aria-hidden="true" />
             </div>
             <select
               id="sort-order"
@@ -203,7 +208,8 @@ export default function InventoryOverview() {
               <option value="price_desc" className={sort === 'price_desc' ? 'hidden' : ''}>Price: High to Low</option>
               <option value="stock" className={sort === 'stock' ? 'hidden' : ''}>Stock Level</option>
             </select>
-            <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" aria-hidden="true" />
+            {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
+            <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-gray-500 pointer-events-none" aria-hidden="true" />
           </div>
         </div>
 
@@ -242,7 +248,7 @@ export default function InventoryOverview() {
                   return (
                     <tr key={p.id} className="hover:bg-gray-50/80 transition-colors group">
 
-                      {/* SKU / ID - Contrast fixed: text-gray-400 -> text-gray-500 */}
+                      {/* SKU / ID */}
                       <td className="pl-6 pr-3 py-4 align-top">
                         <div className="flex items-center gap-1 text-gray-500 mt-2 font-mono text-xs">
                           <Hash className="w-3 h-3" aria-hidden="true" />
@@ -254,7 +260,15 @@ export default function InventoryOverview() {
                       <td className="px-3 py-4">
                         <div className="flex gap-4">
                           <div className="h-14 w-14 rounded-lg border border-gray-100 bg-gray-50 p-1 shrink-0">
-                            <img src={p.thumbnail} alt="" className="h-full w-full object-contain mix-blend-multiply" />
+                            {/* CLS FIX: Added width/height. LCP FIX: Added loading="lazy" */}
+                            <img
+                              src={p.thumbnail}
+                              alt=""
+                              width="56"
+                              height="56"
+                              loading="lazy"
+                              className="h-full w-full object-contain mix-blend-multiply"
+                            />
                           </div>
                           <div className="flex flex-col justify-center min-w-0">
                             <Link
@@ -297,7 +311,7 @@ export default function InventoryOverview() {
                         </div>
                       </td>
 
-                      {/* Price - Contrast fixed: text-gray-400 -> 500, text-emerald-600 -> 700 */}
+                      {/* Price */}
                       <td className="px-3 py-4 text-right align-middle">
                         <div className="flex flex-col items-end gap-0.5">
                           <span className="font-bold text-gray-900">${finalPrice}</span>
@@ -318,7 +332,7 @@ export default function InventoryOverview() {
                         </div>
                       </td>
 
-                      {/* Actions - Added aria-label */}
+                      {/* Actions */}
                       <td className="pr-6 pl-3 py-4 text-right align-middle">
                         <button
                           className="text-gray-500 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-lg transition-colors"
