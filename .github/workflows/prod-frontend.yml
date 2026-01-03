@@ -1,0 +1,66 @@
+name: Prod Deploy - Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - ".github/workflows/prod-frontend.yml"
+
+jobs:
+  build_and_deploy_frontend:
+    name: 🌟 PROD :- Build & Deploy Frontend to S3 + CDN
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📦 Checkout Code
+        uses: actions/checkout@v3
+
+      - name: 🚀 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: 🌎 Create .env File for Build
+        working-directory: ./frontend
+        run: |
+          # The assignment uses the public DummyJSON API
+          echo "VITE_API_BASE_URL=https://dummyjson.com" >> .env
+
+      - name: 📅 Install Dependencies (Frontend)
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: 🔧 Build React App
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: 📤 Upload to S3 (prod-CoutureHub/ folder)
+        uses: jakejarvis/s3-sync-action@master
+        with:
+          args: --delete
+        env:
+          AWS_S3_BUCKET: ${{ secrets.S3_BUCKET_NAME }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SOURCE_DIR: frontend/dist
+          DEST_DIR: prod-CoutureHub
+
+      - name: ❌ Invalidate CloudFront Cache (prod-CoutureHub/)
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.PROD_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      - name: 🪜 Purge Cloudflare Cache (Entire Zone)
+        run: |
+          curl -X POST "https://api.cloudflare.com/client/v4/zones/${{ secrets.CLOUDFLARE_ZONE_ID }}/purge_cache" \
+            -H "Authorization: Bearer ${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
