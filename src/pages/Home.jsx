@@ -11,14 +11,14 @@ import {
 
 export default function Home() {
   return (
-    <div className="relative bg-white overflow-hidden">
+    <main className="relative bg-white overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-0 right-0 h-[500px] bg-gradient-to-b from-indigo-50/50 to-white -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 space-y-32">
 
         {/* ================= HERO SECTION ================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
 
           {/* Left Content */}
           <div className="flex flex-col text-center lg:text-left animate-fade-up">
@@ -41,6 +41,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Link
                 to="/inventory"
+                aria-label="View Inventory Dashboard"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-indigo-600 text-white font-semibold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
               >
                 View Inventory <ArrowRight className="w-4 h-4" />
@@ -48,6 +49,7 @@ export default function Home() {
 
               <Link
                 to="/categories"
+                aria-label="Browse Product Catalog"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white border border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
               >
                 <Boxes className="w-4 h-4 text-gray-500" />
@@ -55,16 +57,31 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 text-gray-400 grayscale opacity-70">
-              {/* Dummy Logos for social proof feeling */}
-              <div className="font-bold text-xl">STORE<span className="font-light">MAX</span></div>
-              <div className="font-bold text-xl tracking-tighter">RETAIL<span className="text-indigo-300">OS</span></div>
-              <div className="font-serif italic font-bold text-xl">FashionHub</div>
+            {/* --- ACCESSIBILITY FIXES APPLIED HERE --- */}
+            {/* Removed 'opacity-70' & 'grayscale' which caused contrast failures */}
+            <div className="mt-10 flex items-center justify-center lg:justify-start gap-8 select-none">
+
+              {/* STOREMAX: Darkened text to pass WCAG AA */}
+              <div className="font-bold text-xl text-gray-600">
+                STORE<span className="font-normal text-gray-500">MAX</span>
+              </div>
+
+              {/* RETAILOS: Changed text-indigo-300 to text-indigo-600 */}
+              <div className="font-bold text-xl tracking-tighter text-gray-700">
+                RETAIL<span className="text-indigo-600">OS</span>
+              </div>
+
+              {/* FashionHub: Explicitly set dark color instead of relying on gray parent */}
+              <div className="font-serif italic font-bold text-xl text-gray-800">
+                FashionHub
+              </div>
             </div>
+            {/* ---------------------------------------- */}
+
           </div>
 
           {/* Right Visual (Abstract UI Preview) */}
-          <div className="relative lg:h-[600px] flex items-center justify-center perspective-1000">
+          <div className="relative lg:h-[600px] flex items-center justify-center perspective-1000" aria-hidden="true">
             {/* Decorative Blobs */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-indigo-100/50 blur-3xl rounded-full -z-10 animate-pulse-slow" />
 
@@ -107,10 +124,10 @@ export default function Home() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* ================= FEATURES GRID ================= */}
-        <div>
+        <section>
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Complete Control Center</h2>
             <p className="text-gray-600">
@@ -135,10 +152,10 @@ export default function Home() {
               desc="Deep dive into SKU-level data, high-res imagery, discounts, and related item recommendations."
             />
           </div>
-        </div>
+        </section>
 
         {/* ================= RESPONSIVE BANNER ================= */}
-        <div className="bg-gray-900 rounded-3xl overflow-hidden relative">
+        <section className="bg-gray-900 rounded-3xl overflow-hidden relative">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
 
           <div className="relative px-8 py-16 md:py-20 text-center max-w-4xl mx-auto">
@@ -153,7 +170,7 @@ export default function Home() {
               <DeviceIcon icon={Smartphone} label="Mobile" />
             </div>
           </div>
-        </div>
+        </section>
 
       </div>
 
@@ -162,7 +179,7 @@ export default function Home() {
         .rotate-y-12 { transform: rotateY(-12deg) rotateX(5deg); }
         .animate-pulse-slow { animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
       `}</style>
-    </div>
+    </main>
   )
 }
 
@@ -190,8 +207,6 @@ function DeviceIcon({ icon: Icon, label }) {
     </div>
   )
 }
-
-
 
 // --------------- TO show the error state 
 
