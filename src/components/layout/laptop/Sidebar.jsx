@@ -1,32 +1,3 @@
-// import { Link, useLocation } from 'react-router-dom'
-
-// export default function Sidebar() {
-//   const { pathname } = useLocation()
-
-//   const linkClass = path =>
-//     `block rounded px-3 py-2 text-sm ${pathname === path
-//       ? 'bg-indigo-50 text-indigo-600 font-semibold'
-//       : 'hover:bg-gray-100'
-//     }`
-
-//   return (
-//     <aside className="w-60 border-r bg-white px-4 py-4 shrink-0">
-//       <nav className="flex flex-col gap-1">
-//         <Link to="/" className={linkClass('/')}>Home</Link>
-//         <Link to="/inventory" className={linkClass('/inventory')}>
-//           Inventory
-//         </Link>
-//         <Link to="/categories" className={linkClass('/categories')}>
-//           Categories
-//         </Link>
-//         <Link to="/analytics" className={linkClass('/analytics')}>
-//           Analytics
-//         </Link>
-//       </nav>
-//     </aside>
-//   )
-// }
-
 
 import { Link, useLocation } from 'react-router-dom'
 import { 
