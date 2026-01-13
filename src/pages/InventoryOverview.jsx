@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getProducts, getProductsByCategory, getCategories } from '@/api/products.api'
 import { useDebounce } from '@/hooks/useDebounce'
 import Loader from '@/components/common/Loader'
 import ErrorState from '@/components/common/ErrorState'
 import ProductCard from '@/components/cards/ProductCard'
+import { INVENTORY_CONFIG } from '@/constants/inventory'
 import {
   Search,
   Filter,
@@ -18,25 +19,24 @@ import {
   Hash
 } from 'lucide-react'
 
-const LIMIT = 20
-const LOW_STOCK_THRESHOLD = 10
+const { ITEMS_PER_PAGE, LOW_STOCK_THRESHOLD } = INVENTORY_CONFIG
 const EMPTY_IMAGE = 'https://thecafetable.com/assets/images/no-product.png?v=3'
 
 export default function InventoryOverview() {
   // Capture the category from the URL
   const { category } = useParams()
 
-  const [products, setProducts] = useState([])
+  const [rawProducts, setRawProducts] = useState([]) // Store raw fetched data
   const [categories, setCategories] = useState([])
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebounce(search)
-  const [sort, setSort] = useState('')
+
+  const [sort, setSort] = useState('stock')
 
   // Initialize filter with the URL param if present
   const [filterCategory, setFilterCategory] = useState(category || '')
 
   const [page, setPage] = useState(0)
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -54,56 +54,22 @@ export default function InventoryOverview() {
     setPage(0)
   }, [category])
 
-  useEffect(() => {
-    if (debouncedSearch) {
-      setFilterCategory('')
-      setPage(0)
-    }
-  }, [debouncedSearch])
-
-  useEffect(() => {
-    setPage(0)
-  }, [sort, filterCategory])
-
+  // Fetch only when the underlying data source criteria (category) changes
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       setError(null)
 
       try {
-        let list = []
-
         // Optimization: In a real-world high-traffic app, we would implement server-side
-        // pagination here instead of fetching 1000 items, to reduce "Main Thread Work".
+        // pagination here. For now, we fetch a larger set and filter locally.
+        let data
         if (filterCategory) {
-          const data = await getProductsByCategory(filterCategory, 1000, 0)
-          list = data.products
+          data = await getProductsByCategory(filterCategory, 1000, 0)
         } else {
-          const data = await getProducts(1000, 0)
-          list = data.products
+          data = await getProducts(1000, 0)
         }
-
-        if (debouncedSearch) {
-          const query = debouncedSearch.toLowerCase()
-          list = list.filter(p =>
-            p.title.toLowerCase().includes(query)
-          )
-        }
-
-        if (sort === 'name') {
-          list.sort((a, b) => a.title.localeCompare(b.title))
-        } else if (sort === 'price_asc') {
-          list.sort((a, b) => a.price - b.price)
-        } else if (sort === 'price_desc') {
-          list.sort((a, b) => b.price - a.price)
-        } else if (sort === 'stock') {
-          list.sort((a, b) => a.stock - b.stock)
-        }
-
-        setTotal(list.length)
-        const start = page * LIMIT
-        const end = start + LIMIT
-        setProducts(list.slice(start, end))
+        setRawProducts(data.products)
       } catch (e) {
         setError(e.message)
       } finally {
@@ -112,12 +78,53 @@ export default function InventoryOverview() {
     }
 
     fetchData()
-  }, [debouncedSearch, filterCategory, sort, page])
+  }, [filterCategory])
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(0)
+  }, [debouncedSearch, sort, filterCategory])
+
+  /* ------------------------------------------------------------------
+   * Memoized Data Processing (Performance Optimization)
+   * ------------------------------------------------------------------ */
+  const processedProducts = useMemo(() => {
+    let list = [...rawProducts]
+
+    if (debouncedSearch) {
+      const query = debouncedSearch.toLowerCase()
+      list = list.filter(p =>
+        (p.title && p.title.toLowerCase().includes(query)) ||
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        (p.category && p.category.toLowerCase().includes(query)) ||
+        (p.description && p.description.toLowerCase().includes(query))
+      )
+    }
+
+    if (sort === 'name') {
+      list.sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sort === 'price_asc') {
+      list.sort((a, b) => a.price - b.price)
+    } else if (sort === 'price_desc') {
+      list.sort((a, b) => b.price - a.price)
+    } else if (sort === 'stock') {
+      list.sort((a, b) => a.stock - b.stock)
+    }
+
+    return list
+  }, [rawProducts, debouncedSearch, sort])
+
+  // Pagination
+  const total = processedProducts.length
+  const start = page * ITEMS_PER_PAGE
+  const end = start + ITEMS_PER_PAGE
+  const visibleProducts = processedProducts.slice(start, end)
+
 
   /* ------------------------------------------------------------------
    * Render Helpers
    * ------------------------------------------------------------------ */
-  const totalPages = Math.ceil(total / LIMIT)
+  const totalPages = Math.ceil(total / ITEMS_PER_PAGE)
 
   const getDiscountedPrice = (price, discount) => {
     return (price - (price * (discount / 100))).toFixed(2)
@@ -133,8 +140,13 @@ export default function InventoryOverview() {
           Inventory Products
         </h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500 bg-white border px-3 py-1.5 rounded-full shadow-sm">
-            Total Items: <span className="font-bold text-gray-900">{total}</span>
+          {/* Accessibility: Live region for search results */}
+          <span
+            className="text-xs font-medium text-gray-500 bg-white border px-3 py-1.5 rounded-full shadow-sm"
+            role="status"
+            aria-live="polite"
+          >
+            Total Items: <span className="font-bold text-gray-900">{loading ? '...' : total}</span>
           </span>
         </div>
       </div>
@@ -152,7 +164,7 @@ export default function InventoryOverview() {
           <input
             id="inventory-search"
             type="text"
-            placeholder="Search by name, brand..."
+            placeholder="Search by name, brand, category..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="pl-10 h-10 w-full rounded-lg border-gray-200 bg-gray-50 text-sm focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
@@ -217,7 +229,7 @@ export default function InventoryOverview() {
 
       {loading && <Loader />}
 
-      {!loading && products.length === 0 && (
+      {!loading && visibleProducts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-xl border border-dashed border-gray-300">
           <img src={EMPTY_IMAGE} alt="" className="w-48 opacity-50 mb-4" />
           <p className="text-gray-500 font-medium">No products found matching your criteria</p>
@@ -225,7 +237,7 @@ export default function InventoryOverview() {
       )}
 
       {/* ================= DESKTOP TABLE ================= */}
-      {!loading && products.length > 0 && (
+      {!loading && visibleProducts.length > 0 && (
         <>
           <div className="hidden lg:block bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
             <table className="w-full text-sm text-left">
@@ -242,12 +254,11 @@ export default function InventoryOverview() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {products.map(p => {
+                {visibleProducts.map(p => {
                   const finalPrice = getDiscountedPrice(p.price, p.discountPercentage)
 
                   return (
                     <tr key={p.id} className="hover:bg-gray-50/80 transition-colors group">
-
                       {/* SKU / ID */}
                       <td className="pl-6 pr-3 py-4 align-top">
                         <div className="flex items-center gap-1 text-gray-500 mt-2 font-mono text-xs">
@@ -394,16 +405,19 @@ export default function InventoryOverview() {
             </div>
           )}
         </>
-      )}
+      )
+      }
 
       {/* ================= MOBILE (Fallback to Cards) ================= */}
-      {products.length > 0 && (
-        <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {products.map(p => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      )}
-    </div>
+      {
+        visibleProducts.length > 0 && (
+          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {visibleProducts.map(p => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        )
+      }
+    </div >
   )
 }

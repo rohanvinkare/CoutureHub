@@ -170,7 +170,6 @@ export default function InventoryAnalytics() {
                   value={count}
                   total={stats.maxBrandCount}
                   colorClass="bg-indigo-500"
-                  size="sm"
                 />
               ))}
             </div>
@@ -243,7 +242,7 @@ function DashboardCard({ title, icon: Icon, children, className = '' }) {
   )
 }
 
-function ProgressBarRow({ label, value, total, colorClass, size = 'md' }) {
+function ProgressBarRow({ label, value, total, colorClass }) {
   // Calculate width percentage relative to the highest item in the list
   const percentage = Math.round((value / total) * 100)
 
