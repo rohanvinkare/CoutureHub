@@ -11,8 +11,20 @@ import {
   CheckCircle2,
   TrendingUp,
   Tag,
-  Star
+  Star,
+  BarChart3,
+  PieChart,
+  Percent
 } from 'lucide-react'
+
+// Charts
+import CategoryDistributionChart from '@/components/analytics/charts/CategoryDistributionChart'
+import BrandPerformanceChart from '@/components/analytics/charts/BrandPerformanceChart'
+import PriceDistributionChart from '@/components/analytics/charts/PriceDistributionChart'
+import StockStatusChart from '@/components/analytics/charts/StockStatusChart'
+import RatingDistributionChart from '@/components/analytics/charts/RatingDistributionChart'
+import DiscountDistributionChart from '@/components/analytics/charts/DiscountDistributionChart'
+import InventoryValueByCategoryChart from '@/components/analytics/charts/InventoryValueByCategoryChart'
 
 export default function InventoryAnalytics() {
   const [products, setProducts] = useState([])
@@ -25,6 +37,7 @@ export default function InventoryAnalytics() {
       try {
         setLoading(true)
         setError(null)
+        // Fetch ALL products for accurate analytics
         const data = await getProducts(0, 0)
         setProducts(data?.products || [])
       } catch {
@@ -45,8 +58,8 @@ export default function InventoryAnalytics() {
     const lowStock = products.filter(p => p.stock > 0 && p.stock < 10).length
 
     const inventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0)
-    const avgPrice = products.reduce((sum, p) => sum + p.price, 0) / total
 
+    // Data Aggregation for Charts
     const categories = {}
     const brands = {}
 
@@ -55,33 +68,14 @@ export default function InventoryAnalytics() {
       if (p.brand) brands[p.brand] = (brands[p.brand] || 0) + 1
     })
 
-    // Sort and get max value for progress bars
-    const sortedCategories = Object.entries(categories)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-
-    const maxCategoryCount = sortedCategories[0]?.[1] || 1
-
-    const topBrands = Object.entries(brands)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-
-    const maxBrandCount = topBrands[0]?.[1] || 1
-
-    const avgRating = products.reduce((sum, p) => sum + (p.rating || 0), 0) / total
-
     return {
       total,
       inStock,
       stockPercentage: Math.round((inStock / total) * 100),
       lowStock,
       inventoryValue,
-      avgPrice,
-      sortedCategories,
-      maxCategoryCount,
-      topBrands,
-      maxBrandCount,
-      avgRating
+      categories,
+      brands
     }
   }, [products])
 
@@ -96,103 +90,91 @@ export default function InventoryAnalytics() {
 
   /* ---------------- UI ---------------- */
   return (
-    <div className="space-y-6 sm:space-y-8 p-4 sm:p-6 lg:p-8 bg-gray-50/50 min-h-screen">
+    <div className="space-y-4 h-full flex flex-col">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-2">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900">Inventory Overview</h2>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1">Real-time insights across your product catalog.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Analytics Dashboard</h2>
+          <p className="text-sm text-gray-500">Real-time performance metrics and inventory insights.</p>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {/* Legibility Fix: Increased text size from text-[10px] to text-xs */}
-          <span className="text-xs font-medium text-gray-500 bg-white border px-3 py-1 rounded-full shadow-sm whitespace-nowrap">
-            Last updated: Just now
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 bg-white border px-3 py-1.5 rounded-full shadow-sm whitespace-nowrap flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            Live Data
           </span>
         </div>
       </div>
 
-      {/* KPI Section */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Products"
-          value={stats.total}
-          icon={Package}
-          color="blue"
-        />
-        <StatCard
-          label="Inventory Value"
-          value={formatCurrency(stats.inventoryValue)}
-          icon={DollarSign}
-          color="emerald"
-        />
-        <StatCard
-          label="Low Stock Items"
-          value={stats.lowStock}
-          subtext={`${stats.lowStock > 0 ? 'Requires attention' : 'Healthy levels'}`}
-          icon={AlertTriangle}
-          color={stats.lowStock > 0 ? "amber" : "gray"}
-        />
-        <StatCard
-          label="In Stock Rate"
-          value={`${stats.stockPercentage}%`}
-          icon={CheckCircle2}
-          color="indigo"
-        />
-      </div>
+      {/* Main Scrollable Content Area */}
+      <div className="flex-1 min-h-0 overflow-y-auto -mx-1 px-1 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+        <div className="space-y-4 pb-12">
 
-      {/* Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-
-        {/* Category Distribution (Spans 2 columns) */}
-        <DashboardCard title="Top Categories" icon={Tag} className="lg:col-span-2">
-          <div className="space-y-4 sm:space-y-5">
-            {stats.sortedCategories.map(([cat, count]) => (
-              <ProgressBarRow
-                key={cat}
-                label={cat}
-                value={count}
-                total={stats.maxCategoryCount}
-                colorClass="bg-blue-600"
-              />
-            ))}
+          {/* KPI Section - Compact 4 Cols */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Total Products" value={stats.total} icon={Package} color="blue" />
+            <StatCard label="Total Value" value={formatCurrency(stats.inventoryValue)} icon={DollarSign} color="emerald" />
+            <StatCard label="Low Stock Impact" value={stats.lowStock} subtext="Items below threshold" icon={AlertTriangle} color={stats.lowStock > 0 ? "amber" : "gray"} />
+            <StatCard label="Stock Health" value={`${stats.stockPercentage}%`} icon={CheckCircle2} color="indigo" />
           </div>
-        </DashboardCard>
 
-        {/* Right Column Stack */}
-        <div className="space-y-4 sm:space-y-6">
-          {/* Top Brands */}
-          <DashboardCard title="Top Brands" icon={TrendingUp}>
-            <div className="space-y-3 sm:space-y-4">
-              {stats.topBrands.map(([brand, count]) => (
-                <ProgressBarRow
-                  key={brand}
-                  label={brand}
-                  value={count}
-                  total={stats.maxBrandCount}
-                  colorClass="bg-indigo-500"
-                />
-              ))}
-            </div>
-          </DashboardCard>
+          {/* Charts Grid - High Density Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
 
-          {/* Pricing & Rating Summary */}
-          <DashboardCard title="Catalog Health" icon={Star}>
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 pt-1 sm:pt-2">
-              <div className="p-3 sm:p-4 bg-gray-50 rounded-xl text-center border border-gray-100">
-                <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold tracking-wider">Avg Price</p>
-                <p className="text-base sm:text-lg font-bold text-gray-900 mt-1">
-                  {formatCurrency(stats.avgPrice)}
-                </p>
-              </div>
-              <div className="p-3 sm:p-4 bg-gray-50 rounded-xl text-center border border-gray-100">
-                <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-semibold tracking-wider">Avg Rating</p>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <span className="text-base sm:text-lg font-bold text-gray-900">{stats.avgRating.toFixed(1)}</span>
-                  <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 fill-yellow-400" aria-hidden="true" />
-                </div>
-              </div>
+            {/* --- Row 1: Core Distribution --- */}
+
+            {/* 1. Category Dist (Doughnut) */}
+            <ChartCard title="Category Mix" icon={PieChart}>
+              <CategoryDistributionChart categories={stats.categories} />
+            </ChartCard>
+
+            {/* 2. Brand Performance (Bar) - Spans 2 cols on wide */}
+            <div className="md:col-span-2 xl:col-span-1 2xl:col-span-2">
+              <ChartCard title="Top Brands by Volume" icon={TrendingUp}>
+                <BrandPerformanceChart brands={stats.brands} />
+              </ChartCard>
             </div>
-          </DashboardCard>
+
+            {/* 3. Stock Health (Pie) */}
+            <ChartCard title="Stock Status" icon={AlertTriangle}>
+              <div className="flex items-center justify-center h-full">
+                <StockStatusChart products={products} />
+              </div>
+            </ChartCard>
+
+
+            {/* --- Row 2: Financial & Pricing --- */}
+
+            {/* 4. Value by Category (Bar) - Spans 2 cols */}
+            <div className="md:col-span-2 2xl:col-span-2">
+              <ChartCard title="Inventory Value by Category" icon={DollarSign}>
+                <InventoryValueByCategoryChart products={products} />
+              </ChartCard>
+            </div>
+
+            {/* 5. Price Segments (Histogram) */}
+            <ChartCard title="Price Segments" icon={Tag}>
+              <PriceDistributionChart products={products} />
+            </ChartCard>
+
+            {/* 6. Discount Strategy (Bar) */}
+            <ChartCard title="Discount Strategy" icon={Percent}>
+              <DiscountDistributionChart products={products} />
+            </ChartCard>
+
+
+            {/* --- Row 3: Satisfaction --- */}
+
+            {/* 7. Ratings (Bar) */}
+            <div className="xl:col-span-1">
+              <ChartCard title="Customer Ratings" icon={Star}>
+                <RatingDistributionChart products={products} />
+              </ChartCard>
+            </div>
+
+          </div>
         </div>
       </div>
     </div>
@@ -202,7 +184,6 @@ export default function InventoryAnalytics() {
 /* ---------------- Sub-Components ---------------- */
 
 function StatCard({ label, value, subtext, icon: Icon, color }) {
-  // Color mapping for backgrounds and text
   const colors = {
     blue: 'bg-blue-50 text-blue-600',
     emerald: 'bg-emerald-50 text-emerald-600',
@@ -217,7 +198,6 @@ function StatCard({ label, value, subtext, icon: Icon, color }) {
         <div>
           <p className="text-xs sm:text-sm font-medium text-gray-500">{label}</p>
           <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{value}</h3>
-          {/* Contrast Fix: text-gray-400 -> text-gray-500 */}
           {subtext && <p className="text-[10px] sm:text-xs text-gray-500 mt-1">{subtext}</p>}
         </div>
         <div className={`p-2 rounded-lg ${colors[color] || colors.gray}`}>
@@ -228,39 +208,20 @@ function StatCard({ label, value, subtext, icon: Icon, color }) {
   )
 }
 
-function DashboardCard({ title, icon: Icon, children, className = '' }) {
+function ChartCard({ title, icon: Icon, children }) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 shadow-sm ${className}`}>
-      <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100 flex items-center gap-2">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex flex-col">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4 text-gray-400" aria-hidden="true" />}
-        <h3 className="text-sm sm:text-base font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
       </div>
-      <div className="p-4 sm:p-6">
+      <div className="p-5 flex-1 relative min-h-[300px] flex flex-col justify-center">
         {children}
       </div>
     </div>
   )
 }
 
-function ProgressBarRow({ label, value, total, colorClass }) {
-  // Calculate width percentage relative to the highest item in the list
-  const percentage = Math.round((value / total) * 100)
-
-  return (
-    <div className="group">
-      <div className="flex justify-between text-xs sm:text-sm mb-1.5">
-        <span className="font-medium text-gray-700 capitalize truncate pr-2">{label}</span>
-        <span className="text-gray-500 font-mono text-[10px] sm:text-xs whitespace-nowrap">{value} items</span>
-      </div>
-      <div className="w-full bg-gray-100 rounded-full h-1.5 sm:h-2 overflow-hidden">
-        <div
-          className={`h-full rounded-full ${colorClass} transition-all duration-500 ease-out`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  )
-}
 
 /* ---------------- Loading / Error States ---------------- */
 
@@ -274,8 +235,8 @@ function DashboardSkeleton() {
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 h-64 bg-gray-200 rounded-xl"></div>
-        <div className="h-64 bg-gray-200 rounded-xl"></div>
+        <div className="lg:col-span-2 h-80 bg-gray-200 rounded-xl"></div>
+        <div className="h-80 bg-gray-200 rounded-xl"></div>
       </div>
     </div>
   )

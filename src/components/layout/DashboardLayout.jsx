@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }) {
 
   // DASHBOARD LAYOUT
   return (
-    <div className="min-h-screen bg-gray-50/50 flex flex-col">
+    <div className="h-screen w-full bg-gray-50/50 flex flex-col overflow-hidden">
 
       {/* Accessibility: Skip Link */}
       <a
@@ -32,12 +32,12 @@ export default function DashboardLayout({ children }) {
       </a>
 
       {/* TOPBAR (Desktop) */}
-      <div className="hidden lg:block sticky top-0 z-50">
+      <div className="hidden lg:block sticky top-0 z-50 flex-none">
         <Topbar />
       </div>
 
       {/* MOBILE NAVBAR */}
-      <div className="lg:hidden sticky top-0 z-50 bg-white border-b shadow-sm">
+      <div className="lg:hidden sticky top-0 z-50 bg-white border-b shadow-sm flex-none">
         <MobileNavbar />
       </div>
 
@@ -45,13 +45,19 @@ export default function DashboardLayout({ children }) {
       <div className="flex flex-1 overflow-hidden">
 
         {/* SIDEBAR (Desktop) */}
-        <div className="hidden lg:block shrink-0 h-[calc(100vh-64px)] sticky top-16">
+        <div className="hidden lg:block shrink-0 h-full overflow-y-auto border-r border-gray-200/50 bg-white">
           <Sidebar />
         </div>
 
         {/* PAGE CONTENT */}
-        <main id="main-content" className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
+        {/* If we are on inventory page, we want the page component to handle scrolling (for sticky headers) */}
+        {/* Otherwise, we scroll the whole main area */}
+        <main
+          id="main-content"
+          className={`flex-1 flex flex-col min-w-0 ${(location.pathname.includes('/inventory') || location.pathname.includes('/categories') || location.pathname.includes('/analytics') || location.pathname.includes('/profile')) ? 'overflow-hidden bg-gray-50/50' : 'overflow-y-auto'}`}
+        >
+          {/* For Inventory, Categories, Analytics, Profile: Use full width. For others: Keep centered. */}
+          <div className={`w-full ${(location.pathname.includes('/inventory') || location.pathname.includes('/categories') || location.pathname.includes('/analytics') || location.pathname.includes('/profile')) ? 'h-full flex flex-col px-2 sm:px-4 lg:px-6 py-4' : 'max-w-7xl mx-auto p-4 sm:p-6 lg:p-8'}`}>
             {children}
           </div>
         </main>
