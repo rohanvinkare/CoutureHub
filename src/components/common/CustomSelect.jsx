@@ -50,7 +50,10 @@ export default function CustomSelect({
             </button>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-100 py-1 overflow-auto focus:outline-none animate-in fade-in zoom-in-95 duration-100 origin-top">
+                <div
+                    className="absolute z-50 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-100 py-1 overflow-y-auto focus:outline-none animate-in fade-in zoom-in-95 duration-100 origin-top max-h-60 [&::-webkit-scrollbar]:hidden"
+                    style={{ scrollbarWidth: 'none' }}
+                >
                     {options.length > 0 ? (
                         options.map((option) => (
                             <button

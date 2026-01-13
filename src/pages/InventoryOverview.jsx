@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { getProducts, getProductsByCategory, getCategories } from '@/api/products.api'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useSearchHistory } from '@/hooks/useSearchHistory'
+import { useSmartViews } from '@/hooks/useSmartViews'
 import ErrorState from '@/components/common/ErrorState'
 import { INVENTORY_CONFIG } from '@/constants/inventory'
 
@@ -32,6 +33,7 @@ export default function InventoryOverview() {
   const filterStock = searchParams.get('stockStatus') || ''
 
   const debouncedSearch = useDebounce(search)
+  const smartViews = useSmartViews() // Hook for frequent views
 
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -46,23 +48,10 @@ export default function InventoryOverview() {
     getCategories().then(setCategories)
   }, [])
 
-  // PERSISTENCE: Restore state from localStorage if URL is "clean" (no params)
-  useEffect(() => {
-    // Only restore if we are on the base inventory route with no params
-    if (!category && Array.from(searchParams.keys()).length === 0) {
-      const savedState = localStorage.getItem('inventory_view_state')
-      if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState)
-          setSearchParams(parsed, { replace: true })
-        } catch (e) {
-          console.error('Failed to parse saved inventory state', e)
-        }
-      }
-    }
-  }, [category, searchParams, setSearchParams])
+  // NOTE: Auto-restore disabled per user request. Users start fresh.
+  const lastTrackedRef = useRef('')
 
-  // PERSISTENCE: Save state to localStorage whenever relevant params change
+  // PERSISTENCE & SMART TRACKING: Save state and track habits
   useEffect(() => {
     const currentState = {
       sort: sort,
@@ -76,10 +65,29 @@ export default function InventoryOverview() {
       if (!currentState[key]) delete currentState[key]
     })
 
+    // 1. Persistence
     if (Object.keys(currentState).length > 0) {
       localStorage.setItem('inventory_view_state', JSON.stringify(currentState))
     }
-  }, [sort, filterCategory, filterStock, search])
+
+    // 2. Smart Tracking (Habits)
+    const trackingKey = JSON.stringify(currentState)
+
+    // Ignore if same as last time
+    if (trackingKey === lastTrackedRef.current) return
+
+    // Ignore "Default View" (Just sort=stock, nothing else)
+    const isDefault = Object.keys(currentState).length === 1 && currentState.sort === 'stock'
+    if (isDefault) return
+
+    // If we passed checks, track it
+    lastTrackedRef.current = trackingKey
+    smartViews.trackView({
+      category: filterCategory,
+      stockStatus: filterStock,
+      sort: sort
+    })
+  }, [sort, filterCategory, filterStock, search, smartViews.trackView])
 
   // Sync page reset when filters change
   useEffect(() => {
@@ -285,6 +293,7 @@ export default function InventoryOverview() {
           updateParams={updateParams}
           clearAllFilters={clearAllFilters}
           categoryRoute={category}
+          smartViews={smartViews}
         />
       </div>
 

@@ -9,6 +9,7 @@ import {
     Clock
 } from 'lucide-react'
 import CustomSelect from '@/components/common/CustomSelect'
+import SavedViewsDropdown from '@/components/inventory/SavedViewsDropdown'
 
 export default function InventoryControls({
     search,
@@ -27,7 +28,8 @@ export default function InventoryControls({
     sort,
     updateParams,
     clearAllFilters,
-    categoryRoute // To know if we are in a category specific route
+    categoryRoute, // To know if we are in a category specific route
+    smartViews // The useSmartViews hook object
 }) {
     return (
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-center z-40 relative">
@@ -164,6 +166,20 @@ export default function InventoryControls({
                     >
                         <X className="w-5 h-5" />
                     </button>
+                )}
+
+                {/* Saved/Smart Views */}
+                {smartViews && (
+                    <SavedViewsDropdown
+                        smartViews={smartViews}
+                        onSelect={(view) => {
+                            updateParams({
+                                category: view.category,
+                                stockStatus: view.stockStatus,
+                                sort: view.sort
+                            })
+                        }}
+                    />
                 )}
 
             </div>
